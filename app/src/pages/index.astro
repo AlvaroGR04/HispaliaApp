@@ -4,8 +4,8 @@ import Nav from '../components/Nav.astro';
 import supabase from '../utils/supabase.js'; // Asegúrate de que la ruta es correcta
 
 // Obtener las noticias desde Supabase
-const { data: newsItems, error } = await supabase
-  .from('news')
+const { data: teamsItems, error } = await supabase
+  .from('teams') // Cambia 'teams' por el nombre de tu tabla
   .select('*'); // Traer todas las noticias
 
 // Si hay error, mostramos el mensaje
@@ -14,35 +14,31 @@ if (error) {
   errorMessage = error.message;
 }
 
-// Validamos que newsItems nunca sea null ni undefined
-const validNewsItems = newsItems || [];
+// Validamos que teamsItems nunca sea null ni undefined
+const validTeamsItems = teamsItems || [];
 ---
 
 <Layout>
   <head>
-    <title>Noticias de Sevilla</title>
+    <title>index</title>
   </head>
   <body>
   <Nav/>
-    <h1>Noticias de Sevilla</h1>
-
-    <!-- Si hay un error, mostramos un mensaje -->
-    {errorMessage && <p style="color: red;">{errorMessage}</p>}
-
-    <!-- Si no hay noticias, mostramos un mensaje -->
-    {validNewsItems.length === 0 ? (
-      <p>No hay noticias disponibles.</p>
-    ) : (
-      <ul>
-        {validNewsItems.map(newsItem => (
-          <li>
-            <h2>{newsItem.title}</h2>
-            <p>{newsItem.content}</p>
-          </li>
-        ))}
-      </ul>
-    )}
   </body>
 </Layout>
 
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #FFAB60;
+  }
+
+  .main-title {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 40px;
+    font-size: 2.5rem;
+    color: #333;
+  }
 

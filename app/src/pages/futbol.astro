@@ -1,0 +1,107 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import supabase from '../utils/supabase.js'; // Asegúrate de que la ruta es correcta
+
+// Obtener las noticias desde Supabase
+const { data: teamsItems, error } = await supabase
+  .from('teams') // Cambia 'teams' por el nombre de tu tabla
+  .select('*'); // Traer todas las noticias
+
+// Si hay error, mostramos el mensaje
+let errorMessage = '';
+if (error) {
+  errorMessage = error.message;
+}
+
+// Validamos que teamsItems nunca sea null ni undefined
+const validTeamsItems = teamsItems || [];
+---
+
+<Layout>
+  <head>
+    <title>Futbol</title>
+  </head>
+  <body>
+    <Nav />
+    <h1 class="main-title">Equipos de Sevilla</h1>
+
+    {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
+
+    {validTeamsItems.length === 0 ? (
+      <p>No hay equipos disponibles.</p>
+    ) : (
+      <ul id="teams-list">
+        {validTeamsItems.map(teamsItems => (
+          <li class="team-item">
+            <a href={`/equipo/${teamsItems.id_name}`} style="text-decoration: none; color: inherit;">
+              <img src={teamsItems.image_url} alt={teamsItems.name} />
+              <h2>{teamsItems.name}</h2>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </body>
+</Layout>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #FFAB60;
+  }
+
+  .main-title {
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 40px;
+    font-size: 2.5rem;
+    color: #333;
+    text-shadow: 2px 2px #ffddb3;
+  }
+
+  #teams-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    padding: 0 10%;
+    list-style-type: none;
+  }
+
+  .team-item {
+    background-color: #FFAB60;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .team-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+
+  .team-item img {
+    width: 80%;
+    height: auto;
+    border-radius: 10px;
+  }
+
+  .team-item h2 {
+    margin-top: 15px;
+    font-size: 1.4rem;
+    color: black;
+  }
+
+  @media (max-width: 600px) {
+    .main-title {
+      font-size: 2rem;
+    }
+
+    #teams-list {
+      padding: 0 5%;
+    }
+  }
+</style>
