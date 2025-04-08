@@ -15,7 +15,7 @@
             <input id="searchInput" type="text" placeholder="Buscar..." />
         </div>
         <a href="#feria"><b>Feria</b></a>
-        <a href="futbol"><b>Futbol</b></a>
+        <a href="/futbol"><b>Futbol</b></a>
     </div>
     <div class="user">
         <a href="notficaciones"><img src="/nav/notification-off.svg" alt="profile" width="20px"></a>
@@ -224,10 +224,10 @@
     }
 
     // Función para redirigir al hacer clic en un resultado
-    function redirectToPage(id, type) {
+    function redirectToPage(id,id_name, type) {
         // Redirigir a la página correspondiente según el tipo de item (equipo, usuario, hermandad)
         if (type === 'team') {
-            window.location.href = `/team/${id}`;
+            window.location.href = `/team/${id_name}`;
         } else if (type === 'user') {
             window.location.href = `/user/${id}`;
         } else if (type === 'hermandad') {
