@@ -1,0 +1,48 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import supabase from '../utils/supabase.js'; // Asegúrate de que la ruta es correcta
+
+// Obtener las noticias desde Supabase
+const { data: newsItems, error } = await supabase
+  .from('news')
+  .select('*'); // Traer todas las noticias
+
+// Si hay error, mostramos el mensaje
+let errorMessage = '';
+if (error) {
+  errorMessage = error.message;
+}
+
+// Validamos que newsItems nunca sea null ni undefined
+const validNewsItems = newsItems || [];
+---
+
+<Layout>
+  <head>
+    <title>Noticias de Sevilla</title>
+  </head>
+  <body>
+  <Nav/>
+    <h1>Noticias de Sevilla</h1>
+
+    <!-- Si hay un error, mostramos un mensaje -->
+    {errorMessage && <p style="color: red;">{errorMessage}</p>}
+
+    <!-- Si no hay noticias, mostramos un mensaje -->
+    {validNewsItems.length === 0 ? (
+      <p>No hay noticias disponibles.</p>
+    ) : (
+      <ul>
+        {validNewsItems.map(newsItem => (
+          <li>
+            <h2>{newsItem.title}</h2>
+            <p>{newsItem.content}</p>
+          </li>
+        ))}
+      </ul>
+    )}
+  </body>
+</Layout>
+
+
