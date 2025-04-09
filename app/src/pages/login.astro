@@ -1,126 +1,109 @@
 ---
+export const prerender = false;
+
 import supabase from '../utils/supabase.js';
 
-let message = '';
-let success = false;
-let shouldRedirect = false;
+let mensaje = '';
+let error = '';
 
+// Procesar el formulario cuando sea enviado
 if (Astro.request.method === 'POST') {
     try {
-        console.log("Formulario enviado"); // Verifica que el formulario se envió correctamente
+        const contentType = Astro.request.headers.get('content-type') || '';
+    if (!contentType.includes('application/x-www-form-urlencoded')) {
+        throw new Error('El tipo de contenido no es el esperado.');
+    }
 
-        const formData = await Astro.request.text();  // Obtén el cuerpo de la solicitud como texto
-        console.log("Datos del formulario:", formData); // Muestra los datos del formulario
+    const formData = await Astro.request.formData();
 
-        const params = new URLSearchParams(formData);  // Analiza el texto de la solicitud
-        const username = params.get('username')?.trim() || '';
-        const email = params.get('email')?.trim() || '';
-        const password = params.get('password')?.trim() || '';
-        const first_name = params.get('first_name')?.trim() || '';
-        const last_name = params.get('last_name')?.trim() || '';
+    const username = String(formData.get('username') || '').trim();
+    const first_name = String(formData.get('first_name') || '').trim();
+    const last_name = String(formData.get('last_name') || '').trim();
+    const email = String(formData.get('email') || '').trim();
+    const password = String(formData.get('password') || '').trim();
 
-        // Validar que todos los campos estén completos
-        if (!username || !email || !password || !first_name || !last_name) {
-            message = '❌ Todos los campos son obligatorios para registrarse.';
+    if (!username || !first_name || !last_name || !email || !password) {
+        error = 'Todos los campos son obligatorios.';
+    } else {
+        const { data, error: supabaseError } = await supabase
+            .from('users')
+            .insert([{ username, first_name, last_name, email, password }]);
+
+        console.log('🟡 Supabase insert result:', data, supabaseError);
+
+        if (supabaseError) {
+            console.log('🔴 ERROR:', supabaseError);
+            error = supabaseError.message;
         } else {
-            console.log("Datos completos del formulario:", { username, email, password, first_name, last_name });
-
-            // Intentar registrar al usuario con email y password usando Supabase Auth
-            const { data, error: authError } = await supabase.auth.signUp({
-                email: email,
-                password: password
-            });
-
-            const user = data?.user; // Accede correctamente al objeto user
-
-            if (authError) {
-                message = '❌ Error al registrar: ' + authError.message;
-                console.error('Error en Supabase Auth:', authError);
-            } else if (user === null) {
-                message = '❌ No se pudo obtener el usuario después del registro.';
-            } else {
-                // Si el registro fue exitoso en Supabase Auth y el usuario es válido, procedemos a insertar los datos adicionales en la tabla 'users'
-                const { error: insertError } = await supabase
-                    .from('users')
-                    .insert([{
-                        user_id: user.id,  // Usamos el ID del usuario de Supabase Auth
-                        username,
-                        first_name,
-                        last_name,
-                        email,
-                        created_at: new Date().toISOString(),
-                    }]);
-
-                if (insertError) {
-                    message = '❌ Error al guardar los datos del usuario: ' + insertError.message;
-                    console.error('Error al insertar en la base de datos:', insertError);
-                } else {
-                    success = true;
-                    shouldRedirect = true;
-                    message = '✅ ¡Registro exitoso! Redirigiendo...';
-                }
-            }
+            mensaje = 'Usuario registrado con éxito.';
         }
-    } catch (error) {
-        console.error('Error durante el proceso de registro:', error);  // Captura cualquier otro error
-        message = '❌ Hubo un error inesperado durante el registro.';
+    }
+    } catch (err) {
+        console.log('🔴 Error en el procesamiento de la solicitud:', err);
+        error = 'Hubo un error al procesar el formulario.';
     }
 }
 ---
 
+<html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <title>Registro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formulario de Registro</title>
 </head>
-
 <body>
     <div class="title">
         <h1>Bienvenido a HispaliApp</h1>
         <h2>¡Conéctate con nosotros!</h2>
     </div>
+
+    {error && <p style="color: red;">{error}</p>}
+    {mensaje && <p style="color: green;">{mensaje}</p>}
     <div class="main-container">
         <!-- Formulario de Registro -->
         <div class="form-container">
             <h2>Registro de Usuario</h2>
             <form method="POST" enctype="application/x-www-form-urlencoded">
-                <input type="text" name="username" placeholder="Nombre de usuario" required />
-                <input type="text" name="first_name" placeholder="Nombre" required />
-                <input type="text" name="last_name" placeholder="Apellido" required />
-                <input type="email" name="email" placeholder="Correo electrónico" required />
-                <input type="password" name="password" placeholder="Contraseña" required />
-                <button type="submit"><b>Registrarse</b></button>
+                <label for="username">Usuario</label>
+                <input type="text" name="username" id="username" required />
+
+                <label for="first_name">Nombre</label>
+                <input type="text" name="first_name" id="first_name" required />
+
+                <label for="last_name">Apellido</label>
+                <input type="text" name="last_name" id="last_name" required />
+
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" required />
+
+                <label for="password">Contraseña</label>
+                <input type="password" name="password" id="password" required />
+
+                <button type="submit">Registrarse</button>
             </form>
             <!-- Enlace a iniciar sesión si ya está registrado -->
             <div class="login-link">
                 <p>¿Ya tienes cuenta? <a href="/login">Inicia sesión aquí</a></p>
             </div>
         </div>
-
-        <!-- Mensaje de Error o Éxito -->
-        {message && <div class="message">{message}</div>}
     </div>
-
-    {shouldRedirect && (
-        <script>
-            setTimeout(() => {
-                window.location.href = "/"; // Redirige después de 1.5 segundos
-            }, 1500); 
-        </script>
-    )}
 </body>
+</html>
 
 <style>
     body {
         font-family: 'Segoe UI', sans-serif;
         background-image: url("/plaza-espana.jpg");
         background-size: cover;
+        background-repeat: no-repeat; /* Evita la repetición de la imagen */
+        background-attachment: fixed; /* Hace que la imagen se quede fija al hacer scroll */
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
         flex-direction: column;
+        margin-top: 50px;
     }
+
 
     h2 {
         text-align: center;
@@ -138,6 +121,7 @@ if (Astro.request.method === 'POST') {
 
     .form-container {
         background-color: rgba(0, 0, 0, 0.8);
+        color: white;
         padding: 30px;
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 1);

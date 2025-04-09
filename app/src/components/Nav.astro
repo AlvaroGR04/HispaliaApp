@@ -6,23 +6,28 @@ data: { user }
 } = await supabase.auth.getUser();
 ---
 <div class="nav">
-    <div class="titulo">
+  <div class="titulo">
     <a href="/">
       <h1>Hispaliapp</h1>
       <h4>La ciudad de Sevilla</h4>
     </a>
   </div>
 
-  <div class="pages">
-    <a href="#Sevilla"><b>Sevilla</b></a>
-    <a href="#semanasanta"><b>Semana Santa</b></a>
-    <div class="search-container">
-      <img class="search-icon" src="/nav/search-icon.svg" alt="Search" />
-      <input id="searchInput" type="text" placeholder="Buscar..." />
+  <section id="box">
+    <div id="pequeño-nav">
+      ☰ MENÚ
     </div>
-    <a href="#feria"><b>Feria</b></a>
-    <a href="/futbol"><b>Futbol</b></a>
-  </div>
+    <div class="pages" id="pages">
+      <a href="#Sevilla"><b>Sevilla</b></a>
+      <a href="#semanasanta"><b>Semana Santa</b></a>
+      <div class="search-container">
+        <img class="search-icon" src="/nav/search-icon.svg" alt="Search" />
+        <input id="searchInput" type="text" placeholder="Buscar..." />
+      </div>
+      <a href="#feria"><b>Feria</b></a>
+      <a href="/futbol"><b>Futbol</b></a>
+    </div>
+  </section>
 
   <div class="user">
     <a href="/notificaciones">
@@ -38,24 +43,16 @@ data: { user }
         style="cursor: pointer;"
       />
 
-      <!-- Menú oculto que se muestra al hacer clic -->
       <div id="profileMenu" class="dropdown-content">
-        {user ? (
-          <>
-            <p>Hola, {user.email}</p>
-            <a href="/logout"><button class="btn">Cerrar sesión</button></a>
-          </>
-        ) : (
-          <a href="/login"><button class="btn">Iniciar sesión</button></a>
-        )}
+        <!-- Aquí se gestionan las opciones de usuario -->
       </div>
     </div>
   </div>
 </div>
 
-<!-- Recuadro de resultados de búsqueda -->
 <div id="searchResults" class="search-results"></div>
 
+<!-- CSS -->
 <style>
   .nav {
     display: flex;
@@ -78,6 +75,7 @@ data: { user }
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
+    flex-wrap: wrap;  /* Permite que los elementos se ajusten en varias líneas si es necesario */
   }
 
   .pages a,
@@ -87,11 +85,6 @@ data: { user }
     margin: 0 10px;
     text-decoration: none;
     color: black;
-  }
-
-  .pages a:hover,
-  .titulo h1:hover {
-    transform: scale(1.2);
   }
 
   .search-container {
@@ -112,11 +105,10 @@ data: { user }
     border-radius: 4px;
     border: 1px solid #ced4da;
     display: none;
-    top: 0px;
+    position: absolute;
     left: 0;
     width: 100%;
     z-index: 20;
-    position: relative;
   }
 
   #searchResults {
@@ -133,22 +125,6 @@ data: { user }
     padding: 10px;
     max-height: 300px;
     overflow-y: auto;
-  }
-
-  .result-item {
-    margin: 10px 0;
-    padding: 10px;
-    background-color: #ffab60;
-    border-radius: 10px;
-    cursor: pointer;
-  }
-
-  .result-item:hover {
-    background-color: #e0953f;
-  }
-
-  .result-item h4 {
-    margin: 0;
   }
 
   .profile-dropdown {
@@ -178,13 +154,51 @@ data: { user }
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s;
+    margin: 5px;
   }
 
   .btn:hover {
     background-color: #e08a3f;
   }
+
+  @media (max-width: 768px) {
+    .pages {
+      display: none;
+    }
+
+    #pequeño-nav {
+      display: block;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    #pequeño-nav:hover {
+      color: #ff6f00;
+    }
+
+    .pages a {
+      display: block;
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .search-container {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .search-icon {
+      margin-bottom: 10px;
+    }
+
+    .search-container input {
+      width: 100%;
+      position: static;  /* Hacemos que la caja de texto no se superponga con la pantalla en móvil */
+    }
+  }
 </style>
 
+<!-- JavaScript -->
 <script type="module">
   import supabase from '/src/utils/supabase.js';
 
@@ -194,7 +208,8 @@ data: { user }
   const profileIcon = document.getElementById('profileIcon');
   const profileMenu = document.getElementById('profileMenu');
 
-  searchIcon.addEventListener('click', () => {
+  searchIcon.addEventListener('click', (e) => {
+    e.preventDefault(); // Evitar que se haga zoom en el móvil
     searchInput.style.display = 'block';
     searchInput.focus();
   });
@@ -280,4 +295,32 @@ data: { user }
   };
 
   searchInput.addEventListener('input', searchQuery);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const menuIcon = document.getElementById('pequeño-nav');
+    const menuItems = document.getElementById('pages');
+
+    if (!menuIcon || !menuItems) {
+      console.warn("Elementos del menú no encontrados en el DOM.");
+      return;
+    }
+
+    function updateMenuDisplay() {
+      if (window.innerWidth <= 768) {
+        menuIcon.style.display = 'block';
+        menuItems.style.display = 'none';
+      } else {
+        menuIcon.style.display = 'none';
+        menuItems.style.display = 'flex';
+      }
+    }
+
+    menuIcon.addEventListener('click', () => {
+      menuItems.style.display = menuItems.style.display === 'flex' ? 'none' : 'flex';
+    });
+
+    window.addEventListener('resize', updateMenuDisplay);
+    updateMenuDisplay(); // Ejecutar al cargar la página
+  });
 </script>
+
