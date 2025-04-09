@@ -1,0 +1,225 @@
+---
+import supabase from '../utils/supabase.js';
+
+let message = '';
+let success = false;
+let shouldRedirect = false;
+
+if (Astro.request.method === 'POST') {
+    try {
+        console.log("Formulario enviado"); // Verifica que el formulario se envió correctamente
+
+        const formData = await Astro.request.text();  // Obtén el cuerpo de la solicitud como texto
+        console.log("Datos del formulario:", formData); // Muestra los datos del formulario
+
+        const params = new URLSearchParams(formData);  // Analiza el texto de la solicitud
+        const username = params.get('username')?.trim() || '';
+        const email = params.get('email')?.trim() || '';
+        const password = params.get('password')?.trim() || '';
+        const first_name = params.get('first_name')?.trim() || '';
+        const last_name = params.get('last_name')?.trim() || '';
+
+        // Validar que todos los campos estén completos
+        if (!username || !email || !password || !first_name || !last_name) {
+            message = '❌ Todos los campos son obligatorios para registrarse.';
+        } else {
+            console.log("Datos completos del formulario:", { username, email, password, first_name, last_name });
+
+            // Intentar registrar al usuario con email y password usando Supabase Auth
+            const { data, error: authError } = await supabase.auth.signUp({
+                email: email,
+                password: password
+            });
+
+            const user = data?.user; // Accede correctamente al objeto user
+
+            if (authError) {
+                message = '❌ Error al registrar: ' + authError.message;
+                console.error('Error en Supabase Auth:', authError);
+            } else if (user === null) {
+                message = '❌ No se pudo obtener el usuario después del registro.';
+            } else {
+                // Si el registro fue exitoso en Supabase Auth y el usuario es válido, procedemos a insertar los datos adicionales en la tabla 'users'
+                const { error: insertError } = await supabase
+                    .from('users')
+                    .insert([{
+                        user_id: user.id,  // Usamos el ID del usuario de Supabase Auth
+                        username,
+                        first_name,
+                        last_name,
+                        email,
+                        created_at: new Date().toISOString(),
+                    }]);
+
+                if (insertError) {
+                    message = '❌ Error al guardar los datos del usuario: ' + insertError.message;
+                    console.error('Error al insertar en la base de datos:', insertError);
+                } else {
+                    success = true;
+                    shouldRedirect = true;
+                    message = '✅ ¡Registro exitoso! Redirigiendo...';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error durante el proceso de registro:', error);  // Captura cualquier otro error
+        message = '❌ Hubo un error inesperado durante el registro.';
+    }
+}
+---
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Registro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body>
+    <div class="title">
+        <h1>Bienvenido a HispaliApp</h1>
+        <h2>¡Conéctate con nosotros!</h2>
+    </div>
+    <div class="main-container">
+        <!-- Formulario de Registro -->
+        <div class="form-container">
+            <h2>Registro de Usuario</h2>
+            <form method="POST" enctype="application/x-www-form-urlencoded">
+                <input type="text" name="username" placeholder="Nombre de usuario" required />
+                <input type="text" name="first_name" placeholder="Nombre" required />
+                <input type="text" name="last_name" placeholder="Apellido" required />
+                <input type="email" name="email" placeholder="Correo electrónico" required />
+                <input type="password" name="password" placeholder="Contraseña" required />
+                <button type="submit"><b>Registrarse</b></button>
+            </form>
+            <!-- Enlace a iniciar sesión si ya está registrado -->
+            <div class="login-link">
+                <p>¿Ya tienes cuenta? <a href="/login">Inicia sesión aquí</a></p>
+            </div>
+        </div>
+
+        <!-- Mensaje de Error o Éxito -->
+        {message && <div class="message">{message}</div>}
+    </div>
+
+    {shouldRedirect && (
+        <script>
+            setTimeout(() => {
+                window.location.href = "/"; // Redirige después de 1.5 segundos
+            }, 1500); 
+        </script>
+    )}
+</body>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background-image: url("/plaza-espana.jpg");
+        background-size: cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        flex-direction: column;
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+
+    .main-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-container {
+        background-color: rgba(0, 0, 0, 0.8);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 1);
+        max-width: 400px;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .form-container h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: white;
+        font-weight: bold;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    input {
+        margin-bottom: 15px;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 1rem;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    input:focus {
+        border-color: #ff8c42;
+        outline: none;
+    }
+
+    button {
+        background-color: #ff8c42;
+        color: black;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 1rem;
+        cursor: pointer;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .message {
+        margin-top: 15px;
+        text-align: center;
+        font-weight: bold;
+        color: red;
+    }
+
+    .login-link {
+        text-align: center;
+        margin-top: 10px;
+        color: white;
+    }
+
+    .login-link a {
+        color: #ff8c42;
+        text-decoration: none;
+    }
+
+    .login-link a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+        body {
+            padding: 10px;
+            background-image: url("/semanasanta.jpg");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: white;
+        }
+
+        .form-container {
+            width: 80%;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+    }
+</style>
