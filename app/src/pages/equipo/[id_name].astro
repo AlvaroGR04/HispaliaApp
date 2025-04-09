@@ -3,6 +3,14 @@ import Layout from '../../layouts/Layout.astro';
 import Nav from '../../components/Nav.astro';
 import supabase from '../../utils/supabase.js';
 
+// ✅ Tipo para las noticias
+type Noticia = {
+  title: string;
+  url: string;
+  publishedAt?: string;
+  description?: string;
+};
+
 export async function getStaticPaths() {
   try {
     const { data: teams, error } = await supabase
@@ -14,7 +22,6 @@ export async function getStaticPaths() {
       return [];
     }
 
-    // ✅ Devolvemos directamente un array, no un objeto
     return teams.map((team) => ({
       params: { id_name: team.id_name },
     }));
@@ -24,10 +31,9 @@ export async function getStaticPaths() {
   }
 }
 
-// ⚠️ Recuperamos el parámetro de la URL
 const { id_name } = Astro.params;
 
-// Obtener los datos del equipo correspondiente
+// Obtener datos del equipo
 const { data: teamData, error: teamError } = await supabase
   .from('teams')
   .select('*')
@@ -39,52 +45,117 @@ if (teamError) {
 }
 
 const team = teamData?.[0];
+
+// ✅ Obtener noticias desde el campo news_api_url
+let noticias: Noticia[] = [];
+
+if (team?.news_api_url) {
+  try {
+    const response = await fetch(team.news_api_url);
+    const result = await response.json();
+    noticias = result.articles || result.news || [];
+
+    // Filtrar las noticias para que solo muestren las que contienen el nombre del equipo
+    noticias = noticias.filter((n: Noticia) =>
+      n.title?.toLowerCase().includes(team.id_name.toLowerCase()) ||
+      n.description?.toLowerCase().includes(team.id_name.toLowerCase())
+    );
+  } catch (error) {
+    console.error("Error al cargar noticias:", error);
+  }
+}
 ---
 
 <Layout>
-<head>
+  <head>
     <title>{team ? team.name : 'Equipo no encontrado'}</title>
-</head>
-<body>
+  </head>
+  <body>
     <Nav />
     {team ? (
-    <>
-    <div class="box">
-        <div class="linea1">
+      <>
+        <div class="box">
+          <div class="linea1">
             <img src={team.image_url} alt={team.name} style="width: 100px; max-width: 100%;" />
             <h1>{team.name}</h1>
-        </div>
-        <div class="linea2">
+          </div>
+          <div class="linea2">
             <p>{team.description}</p>
+          </div>
         </div>
-    </div>
-    </>
+
+        {noticias.length > 0 && (
+          <div class="noticias">
+            <h2>📰 Últimas noticias</h2>
+            <ul>
+              {noticias.map((n) => (
+                <li>
+                  <a href={n.url} target="_blank" rel="noopener noreferrer">{n.title}</a>
+                  {n.publishedAt && (
+                    <p><small>{new Date(n.publishedAt).toLocaleString()}</small></p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </>
     ) : (
-    <p>Equipo no encontrado.</p>
+      <p>Equipo no encontrado.</p>
     )}
-</body>
+  </body>
 </Layout>
 
 <style>
-    body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background-color: #FFAB60;
-    }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #FFAB60;
+  }
 
-    .box {
-        width: 100%;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
+  .box {
+    margin: 25px 50px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
 
-    .linea1 {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+  .linea1 {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 20px;
+  }
 
+  .noticias {
+    margin: 40px 50px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .noticias h2 {
+    margin-top: 0;
+    color: #333;
+  }
+
+  .noticias ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .noticias li {
+    margin-bottom: 20px;
+  }
+
+  .noticias a {
+    font-weight: bold;
+    color: #006633;
+    text-decoration: none;
+  }
+
+  .noticias a:hover {
+    text-decoration: underline;
+  }
 </style>
